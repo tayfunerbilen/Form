@@ -1,0 +1,20 @@
+{form_start}
+
+    {label="Kullanıcı Adınız"}<br>
+    {input="username"}
+
+    <br><br>
+
+    {label="Kategoriler"} <br>
+    {select="categories"}
+
+    <br><br>
+
+    {label="Hakkımda"} <br>
+    {textarea="about_us"}
+
+    <br><br>
+
+    {button="Gönder"}
+
+{form_end}
