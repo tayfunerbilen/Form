@@ -4,68 +4,76 @@ namespace Prototurk;
 
 trait HtmlElements {
 
-    public function start($url = '', $method = 'post', $className = '')
+    public function start($action, $method = 'post')
     {
+        $this->action = $action;
         $this->method = $method;
-        $this->url = $url;
-        return $this->html = '<form action="' . $this->url . '" method="' . $this->method . '"' . ($className ? ' class="' . $className . '"' : null) . '>';
+        return $this->html = '<form action="' . $this->action . '" method="' . $this->method . '">';
     }
 
     public function end()
     {
-        $form = '</form>';
-        $this->html .= $form;
-        return $form;
+        $html = '</form>';
+        $this->html .= $html;
+        return $html;
     }
 
-    public function input($name, $attributes = [], $defaultValue = '')
+    public function input($name, $attributes, $defaultValue = '')
     {
         $this->inputs[$name] = [
             'attributes' => $attributes,
             'defaultValue' => $defaultValue,
             'type' => 'input'
         ];
-        $input = '<input type="' . ($attributes['type'] ?? 'text') . '"';
-        if ($defaultValue){
-            $input .= ' value="' . $defaultValue . '"';
-        }
-        $input .= $this->setAttributes($attributes, $name);
-        $input .= '>';
-        $this->html .= $input;
-        return $input;
+        $html = '<input' . ($defaultValue ? ' value="' . $defaultValue . '"' : null);
+        $html .= $this->setAttributes($name, $attributes);
+        $html .= '>';
+        $this->html .= $html;
+        return $html;
     }
 
-    public function textarea($name, $attributes = [], $defaultValue = '')
+    public function textarea($name, $attributes, $defaultValue = '')
     {
         $this->inputs[$name] = [
             'attributes' => $attributes,
             'defaultValue' => $defaultValue,
             'type' => 'textarea'
         ];
-        $textarea = '<textarea';
-        $textarea .= $this->setAttributes($attributes, $name);
-        $textarea .= '>' . $defaultValue . '</textarea>';
-        $this->html .= $textarea;
-        return $textarea;
-    } 
+        $html = '<textarea';
+        $html .= $this->setAttributes($name, $attributes);
+        $html .= '>' . $defaultValue . '</textarea>';  
+        $this->html .= $html;
+        return $html;
+    }
 
-    public function select($name, $options, $attributes = [], $defaultValue = '')
+    public function select($name, $options, $attributes, $defaultValue = '')
     {
         $this->inputs[$name] = [
-            'options' => $options,
             'attributes' => $attributes,
             'defaultValue' => $defaultValue,
+            'options' => $options,
             'type' => 'select'
         ];
-        $select = '<select';
-        $select .= $this->setAttributes($attributes, $name);
-        $select .= '>';
+        $html = '<select';
+        $html .= $this->setAttributes($name, $attributes);
+        $html .= '>';
         foreach ($options as $key => $val){
-            $select .= '<option' . ($defaultValue == $key ? ' selected' : null) . ' value="' . $key . '">' . $val . '</option>';
+            $html .= '<option ' . ($defaultValue == $key ? ' selected' : null) . ' value="' . $key . '">' . $val . '</option>';
         }
-        $select .= '</select>';
-        $this->html .= $select;
-        return $select;
+        $html .= '</select>';
+        $this->html .= $html;
+        return $html;
+    }
+    
+    public function button($text, $id = null, $class = 'btn')
+    {
+        $this->buttons[$text] = [
+            'id' => $id,
+            'class' => $class
+        ];
+        $button = '<button name="submit" value="1" type="submit" ' . ($id ? ' id="' . $id . '"' : null) . ' class="' . $class . '">' . $text . '</button>';
+        $this->html .= $button;
+        return $button;
     }
 
     public function label($text, $id = null)
@@ -76,60 +84,109 @@ trait HtmlElements {
         return $label;
     }
 
-    public function button($text, $class = 'btn')
-    {
-        $this->buttons[$text] = $class;
-        $button = '<button type="submit" name="submit" value="1" class="' . $class . '">' . $text . '</button>';
-        $this->html .= $button;
-        return $button;
-    }
-
 }
 
 class Form {
-
+    
     use HtmlElements;
 
-    public $html;
+    protected $html;
+    public $action;
     public $method;
-    public $url;
-    public $buttons = [];
     public $inputs = [];
+    public $buttons = [];
     public $labels = [];
-    public $errors = [];
-    public $values = [];
+    protected $values = [];
+    protected $errors = [];
 
-    public function setAttributes($attributes, $name)
+    public function setAttributes($name, $attributes)
     {
         $html = ' name="' . $name . (isset($attributes['multiple']) ? '[]' : null) . '"';
-        foreach ($attributes as $attr => $value){
-            $html .= ' ' . $attr . '="' . $value . '"';
+        foreach ($attributes as $key => $val){
+            $html .= ' ' . $key . '="' . $val . '"';
         }
         return $html;
     }
 
+    public function show($templateName = null)
+    {
+        if ($templateName){
+            ob_start();
+            require __DIR__ . '/' . $templateName . '.html';
+            $output = ob_get_clean();
+            
+            $output = str_replace(
+                ['{form}', '{/form}'],
+                [$this->start($this->action, $this->method), $this->end()],
+                $output
+            );
+
+            foreach ($this->labels as $text => $id)
+            {
+                $output = str_replace(
+                    '{label="' . $id . '"}',
+                    $this->label($text, $id),
+                    $output
+                );
+            }
+
+            foreach ($this->buttons as $text => $args)
+            {
+                $output = str_replace(
+                    '{button="' . $args['id'] . '"}',
+                    $this->button($text, $args['id'], $args['class']),
+                    $output
+                );
+            }
+
+            foreach ($this->inputs as $name => $args)
+            {
+                if ($args['type'] == 'input'){
+                    $output = str_replace(
+                        '{input="' . $name . '"}',
+                        $this->input($name, $args['attributes'], $args['defaultValue']),
+                        $output
+                    );
+                }
+                if ($args['type'] == 'textarea'){
+                    $output = str_replace(
+                        '{textarea="' . $name . '"}',
+                        $this->textarea($name, $args['attributes'], $args['defaultValue']),
+                        $output
+                    );
+                }
+                if ($args['type'] == 'select'){
+                    $output = str_replace(
+                        '{select="' . $name . '"}',
+                        $this->select($name, $args['options'], $args['attributes'], $args['defaultValue']),
+                        $output
+                    );
+                }
+            }
+
+            return $output;
+
+        } else {
+            return $this->html;
+        }
+    }
+
     public function control()
     {
-        $missings = [];
         $posts = $_POST;
         foreach ($this->inputs as $name => $args){
             if (isset($args['attributes']['required'])){
-                if (!isset($posts[$name]) || empty(trim($posts[$name]))){
-                    $this->errors[] = ($args['attributes']['placeholder'] ?? $name) . ' eksik, lütfen doldurun.';
+                if (!isset($posts[$name]) || empty($posts[$name])){
+                    $this->errors[] = $name . ' boş bırakılamaz!';
                 } else {
                     $this->values[$name] = $posts[$name];
                 }
             } else {
-                if (isset($posts[$name]))
+                if (isset($posts[$name]) && !empty($posts[$name]))
                     $this->values[$name] = $posts[$name];
             }
         }
         return count($this->errors) > 0 ? false : true;
-    }
-
-    public function values()
-    {
-        return $this->values;
     }
 
     public function errors()
@@ -137,38 +194,9 @@ class Form {
         return $this->errors;
     }
 
-    public function show($templateName = null)
+    public function values()
     {
-        if ($templateName){
-            ob_start();
-                include __DIR__ . '/' . $templateName . '.template';
-            $output = ob_get_clean();
-            $output = str_replace(
-                ['{form}', '{/form}'],
-                [$this->start(), $this->end()],
-                $output
-            );
-            foreach ($this->inputs as $name => $args) {
-                if ($args['type'] == 'input'){
-                    $output = str_replace('{input="' . $name . '"}', $this->input($name, $args['attributes'], $args['defaultValue']), $output);
-                }
-                elseif ($args['type'] == 'textarea'){
-                    $output = str_replace('{textarea="' . $name . '"}', $this->textarea($name, $args['attributes'], $args['defaultValue']), $output);
-                }
-                elseif ($args['type'] == 'select'){
-                    $output = str_replace('{select="' . $name . '"}', $this->select($name, $args['options'], $args['attributes'], $args['defaultValue']), $output);
-                }
-            }
-            foreach ($this->labels as $text => $id){
-                $output = str_replace('{label="' . $text . '"}', $this->label($text, $id), $output);
-            }
-            foreach ($this->buttons as $text => $class){
-                $output = str_replace('{button="' . $text . '"}', $this->button($text, $class), $output);
-            }
-            return $output;
-        } else {
-            return $this->html;
-        }
+        return $this->values;
     }
 
     public function dump()
