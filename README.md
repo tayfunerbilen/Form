@@ -42,7 +42,7 @@ echo $form->show('form'); // form.template dosyasını okumaya çalışacak
 # Örnek Template Dosyası
 Yukarıdaki örneği baz alarak
 ```
-{form_start}
+{form}
 
     <ul>
         <li>
@@ -58,7 +58,7 @@ Yukarıdaki örneği baz alarak
         </li>
     </ul>
 
-{form_end}
+{/form}
 ```
 
 # Dinamik Kontrol İçin İse
