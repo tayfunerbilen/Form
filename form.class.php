@@ -18,49 +18,49 @@ trait HtmlElements {
         return $form;
     }
 
-    public function input(string $name, array $options = [], $defaultValue = '')
+    public function input($name, $attributes = [], $defaultValue = '')
     {
         $this->inputs[$name] = [
-            'options' => $options,
+            'attributes' => $attributes,
             'defaultValue' => $defaultValue,
             'type' => 'input'
         ];
-        $input = '<input type="' . ($options['type'] ?? 'text') . '"';
+        $input = '<input type="' . ($attributes['type'] ?? 'text') . '"';
         if ($defaultValue){
             $input .= ' value="' . $defaultValue . '"';
         }
-        $input .= $this->setOptions($options, $name);
+        $input .= $this->setAttributes($attributes, $name);
         $input .= '>';
         $this->html .= $input;
         return $input;
     }
 
-    public function textarea(string $name, array $options = [], $defaultValue = '')
+    public function textarea($name, $attributes = [], $defaultValue = '')
     {
         $this->inputs[$name] = [
-            'options' => $options,
+            'attributes' => $attributes,
             'defaultValue' => $defaultValue,
             'type' => 'textarea'
         ];
         $textarea = '<textarea';
-        $textarea .= $this->setOptions($options, $name);
+        $textarea .= $this->setAttributes($attributes, $name);
         $textarea .= '>' . $defaultValue . '</textarea>';
         $this->html .= $textarea;
         return $textarea;
     } 
 
-    public function select($name, $arrayOptions, $options = [], $defaultValue = '')
+    public function select($name, $options, $attributes = [], $defaultValue = '')
     {
         $this->inputs[$name] = [
-            'arrayOptions' => $arrayOptions,
             'options' => $options,
+            'attributes' => $attributes,
             'defaultValue' => $defaultValue,
             'type' => 'select'
         ];
         $select = '<select';
-        $select .= $this->setOptions($options, $name);
+        $select .= $this->setAttributes($attributes, $name);
         $select .= '>';
-        foreach ($arrayOptions as $key => $val){
+        foreach ($options as $key => $val){
             $select .= '<option' . ($defaultValue == $key ? ' selected' : null) . ' value="' . $key . '">' . $val . '</option>';
         }
         $select .= '</select>';
@@ -99,11 +99,11 @@ class Form {
     public $errors = [];
     public $values = [];
 
-    public function setOptions(array $options, string $name)
+    public function setAttributes($attributes, $name)
     {
-        $html = ' name="' . $name . (isset($options['multiple']) ? '[]' : null) . '"';
-        foreach ($options as $option => $value){
-            $html .= ' ' . $option . '="' . $value . '"';
+        $html = ' name="' . $name . (isset($attributes['multiple']) ? '[]' : null) . '"';
+        foreach ($attributes as $attr => $value){
+            $html .= ' ' . $attr . '="' . $value . '"';
         }
         return $html;
     }
@@ -113,9 +113,9 @@ class Form {
         $missings = [];
         $posts = $_POST;
         foreach ($this->inputs as $name => $args){
-            if (isset($args['options']['required'])){
+            if (isset($args['attributes']['required'])){
                 if (!isset($posts[$name]) || empty(trim($posts[$name]))){
-                    $this->errors[] = ($args['options']['placeholder'] ?? $name) . ' eksik, lütfen doldurun.';
+                    $this->errors[] = ($args['attributes']['placeholder'] ?? $name) . ' eksik, lütfen doldurun.';
                 } else {
                     $this->values[$name] = $posts[$name];
                 }
@@ -150,13 +150,13 @@ class Form {
             );
             foreach ($this->inputs as $name => $args) {
                 if ($args['type'] == 'input'){
-                    $output = str_replace('{input="' . $name . '"}', $this->input($name, $args['options'], $args['defaultValue']), $output);
+                    $output = str_replace('{input="' . $name . '"}', $this->input($name, $args['attributes'], $args['defaultValue']), $output);
                 }
                 elseif ($args['type'] == 'textarea'){
-                    $output = str_replace('{textarea="' . $name . '"}', $this->textarea($name, $args['options'], $args['defaultValue']), $output);
+                    $output = str_replace('{textarea="' . $name . '"}', $this->textarea($name, $args['attributes'], $args['defaultValue']), $output);
                 }
                 elseif ($args['type'] == 'select'){
-                    $output = str_replace('{select="' . $name . '"}', $this->select($name, $args['arrayOptions'], $args['options'], $args['defaultValue']), $output);
+                    $output = str_replace('{select="' . $name . '"}', $this->select($name, $args['options'], $args['attributes'], $args['defaultValue']), $output);
                 }
             }
             foreach ($this->labels as $text => $id){
