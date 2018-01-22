@@ -144,7 +144,7 @@ class Form {
                 include __DIR__ . '/' . $templateName . '.template';
             $output = ob_get_clean();
             $output = str_replace(
-                ['{form_start}', '{form_end}'],
+                ['{form}', '{/form}'],
                 [$this->start(), $this->end()],
                 $output
             );
